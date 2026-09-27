@@ -1,0 +1,2 @@
+*.bin -text -diff
+*.bat text eol=crlf

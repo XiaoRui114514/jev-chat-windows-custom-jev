@@ -1,0 +1,42 @@
+{
+  "app": "jev-chat-windows",
+  "app_version": "v0.1.11",
+  "patch": "判断模型支持自定义 OpenAI 兼容来源",
+  "built_by": "3.11.9",
+  "original": {
+    "sha256": "5fc8d88f2cd75ee899bf22e66a20cb2311b97de3e88d6548d6e9b5d59559a748",
+    "size": 18405223
+  },
+  "patched": {
+    "sha256": "cfc1f7abe5c1791a32b8ab270ad5b8aa3d415957bf9d99c787824b3427343059",
+    "size": 18478489
+  },
+  "archive_start": 320000,
+  "main_entry": {
+    "offset": 27636,
+    "length": 8287,
+    "file": "main.bin"
+  },
+  "pyz": {
+    "offset": 35923,
+    "length": 18048572,
+    "data_start": 17,
+    "toc_offset": 17712359,
+    "header_file": "pyz-header.bin",
+    "header_length": 17,
+    "new_toc_offset": 17785480,
+    "append_file": "pyz-append.bin",
+    "toc_file": "pyz-toc.bin"
+  },
+  "carchive": {
+    "toc_file": "carchive-toc.bin",
+    "cookie_file": "carchive-cookie.bin"
+  },
+  "modules": [
+    "app.overlay",
+    "app.settings",
+    "core.engine",
+    "core.jev_client",
+    "core.providers"
+  ]
+}
