@@ -31,15 +31,29 @@ Jev 走 TypeSafe 自己的 typed decisions 协议（OpenRouter 那条叫 `/api/a
 个别题答不成约定格式会被丢掉，界面上那几行就少显示；一次判断全部失败会退回原来的老路
 （盲起草 + 判断排序一次问完），再失败这次分析就报错。想要真 Jev，还是选 OpenRouter 或 TypeSafe。
 
+## 用 TeamoRouter 的 Jev（TypeSafe 协议）
+
+TeamoRouter 也提供 Jev，但走的是 TypeSafe 协议（`/v1/systemone`），模型 id 就叫 `jev`。
+它不在 `/v1/models` 里——那不是聊天模型，所以「获取模型」拉不到它（点了会提示手填），这很正常：
+
+1. 来源选「**自定义 · TypeSafe 兼容**」
+2. Base URL 填 `https://api.teamorouter.cn`（**只到域名，别带 `/v1`**；SDK 自己拼 `/v1/systemone`）
+3. 密钥填 TeamoRouter 的 key（[控制台](https://teamorouter.cn/dashboard?tab=api-keys) 建一把新的，
+   旧的被停用过就得换）
+4. 模型填 `jev`，保存
+
+这条路走的是 TypeSafe 官方 SDK，跟直连 `api.typesafe.ai` 同一条代码，所以判断质量不打折——
+和上面「自定义 · OpenAI 兼容」那种拿聊天模型凑的做法不是一回事。
+
 ## 补了什么
 
 | 文件 | 改动 |
 | --- | --- |
-| `core/providers.py` | `JEV_PROVIDERS` 多一条 `custom_openai`，多一个 `JEV_CUSTOM` |
-| `core/jev_client.py` | 自定义来源的判断和取模型；两条手写 HTTP 合成一个 `_post_json` |
+| `core/providers.py` | `JEV_PROVIDERS` 多两条：`custom_openai`、`custom_typesafe`；`JEV_CUSTOM` 跟着扩 |
+| `core/jev_client.py` | 两种自定义来源的判断和取模型；两条手写 HTTP 合成一个 `_post_json` |
 | `core/engine.py` | `analyze()` 多一个 `jev_base_url` 参数 |
 | `app/settings.py` | 存/读 `config.json` 里的 `jev_base_url` |
-| `app/overlay.py` | 设置页给判断这组加 Base URL 行，来源提示和说明文案跟着改 |
+| `app/overlay.py` | 设置页给判断这组加 Base URL 行（TypeSafe 那种提示别带 `/v1`），说明文案跟着改 |
 | `main.py` | 把 `jev_base_url` 传给 `analyze()` |
 
 改动就是这 6 个文件，`src/` 下按上游路径原样放着，其余代码没动。
@@ -51,6 +65,8 @@ Jev 走 TypeSafe 自己的 typed decisions 协议（OpenRouter 那条叫 `/api/a
 - 判断这条路：本地假接口跑过一遍完整流程（三种题型、带围栏的 JSON、越界 score、不存在的选项、
   坏密钥、连不上、返回不是 JSON）。另外拿 OpenRouter 的 `/v1/chat/completions` 加一把真 key
   实测过一次：8 道题全答出来，字段和选项都对得上。
+- 「自定义 · TypeSafe 兼容」拿 TeamoRouter（`https://api.teamorouter.cn` + 模型 `jev`）实测过：
+  8 道题全答出来，走的是官方 SDK 的 `system_one`。
 - 免费模型不一定顶得住这套题目（遇到过上游 429、只回思考不回正文、回的 JSON 解析不了），
   这类情况会按「这次判断失败」处理，不会瞎猜。
 

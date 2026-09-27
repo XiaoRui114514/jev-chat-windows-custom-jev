@@ -187,6 +187,66 @@ settings.save(jev_model_text="mock-c")
 assert settings.jev_model() == "mock-c" and settings.jev_base_url() == "https://other.example/v1"
 os.remove(settings._CONFIG)
 
-assert list(JEV_CUSTOM) == ["custom_openai"]
+# TypeSafe 协议的镜像（TeamoRouter 那种）：地址原样交给官方 SDK，模型 id 原样传
+import types as _types                                                   # noqa: E402
+
+sdk_calls = {}
+
+
+class _FakeTypeSafeClient:
+    def __init__(self, api_key=None, base_url=None, model=None, timeout=None):
+        sdk_calls["init"] = {"api_key": api_key, "base_url": base_url, "model": model,
+                             "timeout": timeout}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def system_one(self, state, questions, model=None):
+        sdk_calls["system_one"] = {"state": state, "questions": questions, "model": model}
+        return _types.SimpleNamespace(
+            answers={"literal_question": _types.SimpleNamespace(type="noul", noul=0.9)},
+            usage=_types.SimpleNamespace(input_tokens=7, output_tokens=8))
+
+    @property
+    def models(self):
+        return _types.SimpleNamespace(list=lambda: _types.SimpleNamespace(
+            models=(_types.SimpleNamespace(name="jev"), _types.SimpleNamespace(name="jev-latest"))))
+
+
+_fake_sdk = _types.ModuleType("typesafe_sdk")
+_fake_sdk.TypeSafeClient = _FakeTypeSafeClient
+sys.modules["typesafe_sdk"] = _fake_sdk
+
+got = ask(provider="custom_typesafe", base_url="https://api.teamorouter.cn", model="jev")
+assert sdk_calls["init"] == {"api_key": "test-key", "base_url": "https://api.teamorouter.cn",
+                            "model": "jev", "timeout": 20}, sdk_calls["init"]
+assert got["answers"]["literal_question"] == {"type": "noul", "noul": 0.9}
+assert got["usage"] == {"input_tokens": 7, "output_tokens": 8}
+assert sdk_calls["system_one"]["model"] == "jev"
+assert jc.list_models("custom_typesafe", "k", base_url="https://api.teamorouter.cn/") == \
+    ["jev", "jev-latest"]
+expect_error("先填 Base URL", provider="custom_typesafe", model="jev", base_url="")
+expect_error("先填模型 id", provider="custom_typesafe", model="", base_url="https://api.teamorouter.cn")
+
+# TypeSafe 镜像没有列表接口（TeamoRouter 就是这样）：要给人话，别把 SDK 的解析错甩出去
+class _NoListClient(_FakeTypeSafeClient):
+    @property
+    def models(self):
+        raise RuntimeError("Invalid response data at 'models'")
+
+
+_fake_sdk.TypeSafeClient = _NoListClient
+try:
+    jc.list_models("custom_typesafe", "k", base_url="https://api.teamorouter.cn")
+    raise SystemExit("该报错却没报")
+except jc.JevError as exc:
+    assert "手填" in str(exc), str(exc)
+_fake_sdk.TypeSafeClient = _FakeTypeSafeClient
+
+assert list(JEV_CUSTOM) == ["custom_openai", "custom_typesafe"]
 assert JEV_PROVIDERS["custom_openai"].name == "自定义 · OpenAI 兼容"
+assert JEV_PROVIDERS["custom_typesafe"].name == "自定义 · TypeSafe 兼容"
 print("custom jev path ok")

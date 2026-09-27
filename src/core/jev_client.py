@@ -99,9 +99,14 @@ def ask(state: dict, questions: dict, timeout: float = 20,
     spec = JEV_PROVIDERS.get(provider) or JEV_PROVIDERS["openrouter"]
     key = _api_key(JEV_ENV)  # 各家共用同一把 key，换来源不用重填
     model = model or spec.default
-    if provider == "typesafe":
+    if provider in JEV_CUSTOM and not model:
+        raise JevError("自定义判断来源要先填模型 id")   # 两家自定义都没默认模型
+    if provider in ("typesafe", "custom_typesafe"):
+        # 同一种协议，区别只是地址：官方直连用写死的，自定义用设置页填的（没填就报错，别偷偷打官方）
+        if provider == "custom_typesafe":
+            return _ask_typesafe(state, questions, key, model, timeout, _norm_base(base_url))
         return _ask_typesafe(state, questions, key, model, timeout)
-    if provider in JEV_CUSTOM:
+    if provider in JEV_CUSTOM:  # custom_openai：聊天接口，没有 typed decisions
         return _ask_custom(state, questions, key, base_url, model, timeout)
     return _ask_openrouter(state, questions, key, model, timeout)
 
@@ -118,14 +123,17 @@ def _answer(answer) -> dict:
             "probabilities": {str(k): v for k, v in answer.probabilities.items()}}
 
 
-def _ask_typesafe(state: dict, questions: dict, key: str, model: str, timeout: float) -> dict:
+def _ask_typesafe(state: dict, questions: dict, key: str, model: str, timeout: float,
+                  base_url: str | None = None) -> dict:
     """官方 typesafe_sdk。questions 原样传：core/questions.py 里那几个 dict 本身就是 SDK 的
     NoulModel / ChoiceModel / ScoreModel（SDK 的 normalize_questions 认 dict），不用再包一层对象。
-    重试用 RetryPolicy 的默认值——它本来就重试 408/429/5xx（含 529）并退避。"""
+    重试用 RetryPolicy 的默认值——它本来就重试 408/429/5xx（含 529）并退避。
+    base_url 只有自定义来源才给：TypeSafe 协议的镜像（TeamoRouter 之类）走这里。"""
     import typesafe_sdk
 
+    base = base_url or TYPESAFE_BASE
     try:
-        with typesafe_sdk.TypeSafeClient(api_key=key, base_url=TYPESAFE_BASE, model=model,
+        with typesafe_sdk.TypeSafeClient(api_key=key, base_url=base, model=model,
                                          timeout=timeout) as client:
             result = client.system_one(state, questions, model=model)
     except Exception as exc:
@@ -357,8 +365,6 @@ def _ask_custom(state: dict, questions: dict, key: str, base_url: str | None,
 
     判断质量取决于对面选的模型——这条路没有 Jev 自己的 typed decisions 接口可用。
     """
-    if not model:
-        raise JevError("自定义判断来源要先填模型 id")
     url = _norm_base(base_url) + "/chat/completions"
     payload = {
         "model": model,
@@ -425,17 +431,23 @@ def _list_custom_models(key: str, base_url: str | None, timeout: float) -> list[
 def list_models(provider: str, key: str, timeout: float = 10,
                 base_url: str | None = None) -> list[str]:
     """某家能用的 Jev 模型 id，去重排序。失败抛 JevError（设置页直接显示这句话）。"""
-    if provider in JEV_CUSTOM:
-        return _list_custom_models(key, base_url, timeout)
-    if provider == "typesafe":
+    if provider in ("typesafe", "custom_typesafe"):
         import typesafe_sdk
 
         try:
-            with typesafe_sdk.TypeSafeClient(api_key=key, base_url=TYPESAFE_BASE,
-                                             timeout=timeout) as client:
+            with typesafe_sdk.TypeSafeClient(
+                    api_key=key,
+                    base_url=_norm_base(base_url) if provider == "custom_typesafe" else TYPESAFE_BASE,
+                    timeout=timeout) as client:
                 return sorted({m.name for m in client.models.list().models})
         except Exception as exc:
+            if provider == "custom_typesafe":
+                # TypeSafe 镜像多半只实现 /v1/systemone：拿不到列表不算错，手填就行
+                raise JevError("这个来源的模型列表不一定有，手填模型 id 即可"
+                               "（TeamoRouter 填 jev）") from None
             _fail(exc, "取模型列表")
+    if provider in JEV_CUSTOM:  # custom_openai：标准 /models 目录
+        return _list_custom_models(key, base_url, timeout)
     # OpenRouter 的 Jev 是 Decisions API 专属模型，不在 /api/v1/models 目录里
     # （也没有列它的专用端点），列表按官方模型页写死，别名列排最前（永远指向最新版）。
     # key 对不对由探测兜着，别让坏密钥等到第一次判断才暴露。

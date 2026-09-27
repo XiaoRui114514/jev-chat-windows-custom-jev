@@ -711,6 +711,11 @@ class Overlay:
             custom = provider in self._custom_providers(group)
             group.baseLabel.setVisible(custom)
             group.baseEdit.setVisible(custom)
+            if custom:
+                # TypeSafe 的地址只到域名（SDK 自己拼 /v1/systemone），OpenAI 兼容那边才要 /v1
+                group.baseEdit.setPlaceholderText("https://你的服务（TypeSafe 格式，别带 /v1）"
+                                                  if provider == "custom_typesafe"
+                                                  else "https://你的服务/v1")
 
     def _fetch_models(self, group):
         """「获取模型」：拿填的 key（没填就拿存的）去问接口，网络调用丢后台线程。"""

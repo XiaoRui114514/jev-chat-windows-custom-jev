@@ -28,8 +28,11 @@ _Jev = namedtuple("_Jev", "name default")
 JEV_PROVIDERS = {
     "openrouter": _Jev("OpenRouter", "typesafe/jev-1.13"),
     "typesafe": _Jev("TypeSafe 直连", "jev-latest"),
-    # 自己填地址的判断来源：地址落 config.json 的 jev_base_url，模型手打或「获取模型」拉
+    # 自己填地址的判断来源：地址落 config.json 的 jev_base_url，模型手打或「获取模型」拉。
+    # custom_typesafe 才是接「TypeSafe 协议」的镜像（比如 TeamoRouter，模型 id 叫 jev）；
+    # custom_openai 只能接聊天模型，没有 typed decisions。
     "custom_openai": _Jev("自定义 · OpenAI 兼容", ""),
+    "custom_typesafe": _Jev("自定义 · TypeSafe 兼容", ""),
 }
 
 # protocol ∈ {openai, anthropic, gemini}：决定 core/llm.py 用哪个官方 SDK
@@ -69,8 +72,8 @@ DRAFT_PROVIDERS = {  # 第一个就是默认：DeepSeek 官网直连
 
 # 这两个来源没有固定地址，设置页要多露一行 Base URL 出来
 CUSTOM = ("custom_openai", "custom_anthropic")
-# 判断模型这边只有自定义来源要自己填地址
-JEV_CUSTOM = ("custom_openai",)
+# 判断模型这边要自己填地址的两个来源
+JEV_CUSTOM = ("custom_openai", "custom_typesafe")
 # 起草时认思考开关的来源，设置页那句提示照着这里写
 THINKING = ("DeepSeek", "OpenRouter", "Anthropic", "Gemini")
 # 所有可能存 key 的环境变量（新两把 + 两个老名字），脱敏时一次全过一遍（jev_client.redact_secrets）
@@ -98,8 +101,9 @@ if __name__ == "__main__":
     assert not any(go.keep(m) for m in (
         "minimax-m3", "qwen3.8-max", "grok-4.7", "gpt-6-luna", "muse-spark-1.2-contributor"))
     # 全程只有两把 key，脱敏还得管老名字
-    assert set(JEV_PROVIDERS) == {"openrouter", "typesafe", "custom_openai"}
-    assert [p.name for k, p in JEV_PROVIDERS.items() if k in JEV_CUSTOM] == ["自定义 · OpenAI 兼容"]
+    assert set(JEV_PROVIDERS) == {"openrouter", "typesafe", "custom_openai", "custom_typesafe"}
+    assert [p.name for k, p in JEV_PROVIDERS.items() if k in JEV_CUSTOM] == \
+        ["自定义 · OpenAI 兼容", "自定义 · TypeSafe 兼容"]
     assert all(p.default for k, p in JEV_PROVIDERS.items() if k not in JEV_CUSTOM)
     assert ENV_VARS == ["DEEPSEEK_API_KEY", "JEV_API_KEY", "LLM_API_KEY", "OPENROUTER_API_KEY"]
     print("providers ok")
