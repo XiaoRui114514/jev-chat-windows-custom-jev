@@ -8,8 +8,8 @@
     "size": 18405223
   },
   "patched": {
-    "sha256": "cfc1f7abe5c1791a32b8ab270ad5b8aa3d415957bf9d99c787824b3427343059",
-    "size": 18478489
+    "sha256": "fd2471070ec5d2f92996e24cb84e80e0f503eeff62e645afd3ed23925f92d80f",
+    "size": 18478790
   },
   "archive_start": 320000,
   "main_entry": {
@@ -24,7 +24,7 @@
     "toc_offset": 17712359,
     "header_file": "pyz-header.bin",
     "header_length": 17,
-    "new_toc_offset": 17785480,
+    "new_toc_offset": 17785781,
     "append_file": "pyz-append.bin",
     "toc_file": "pyz-toc.bin"
   },

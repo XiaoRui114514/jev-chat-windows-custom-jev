@@ -90,16 +90,24 @@ Say ''
 
 # ---- 找 exe：只认 sha256 对得上的那个 ----
 $target = $null
+$stale = @()
 foreach ($candidate in Find-Candidates) {
     $hash = File-Hash $candidate
-    if ($hash -eq $manifest.original.sha256 -or ($Restore -and $hash -eq $manifest.patched.sha256)) {
-        $target = $candidate
-        break
-    }
-    Say "（跳过 $(Split-Path -Leaf (Split-Path -Parent $candidate)) 里的 exe：sha256 对不上）"
+    $backup = "$candidate.bak"
+    $backupOk = (Test-Path -LiteralPath $backup) -and ((File-Hash $backup) -eq $manifest.original.sha256)
+    if ($hash -eq $manifest.original.sha256) { $target = $candidate; break }
+    # 已经改过的：这一版补丁、或者别的版本补丁，只要备份还在就算「改过」
+    if ($hash -eq $manifest.patched.sha256 -or $backupOk) { $stale += $candidate; continue }
+    Say "（跳过 $candidate：不是 v$version 的官方 exe）"
 }
 if (-not $target) {
-    Fail "没找到 v$version 的官方 jev-chat-windows.exe。把 exe（或它所在的文件夹）拖到 安装补丁.bat 上再跑一次。"
+    if ($Restore -and $stale.Count -gt 0) {
+        $target = $stale[0]                     # 还原只看备份对不对
+    } elseif ($stale.Count -gt 0) {
+        Fail "这个 exe 已经打过补丁或改动过：`n  $($stale[0])`n先双击 卸载补丁.bat 还原成官方版，再来打补丁。"
+    } else {
+        Fail "没找到 v$version 的官方 jev-chat-windows.exe。把 exe（或它所在的文件夹）拖到 安装补丁.bat 上再跑一次。"
+    }
 }
 
 $backup = "$target.bak"

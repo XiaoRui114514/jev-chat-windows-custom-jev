@@ -331,7 +331,11 @@ def _content_of(body: dict) -> str:
     if isinstance(content, list):  # 少数服务按 block 回
         content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
     if not isinstance(content, str) or not content.strip():
-        raise JevError("判断模型返回了空内容")
+        finish = choices[0].get("finish_reason") or "?"
+        thought = isinstance(message, dict) and (message.get("reasoning")
+                                                or message.get("reasoning_content"))
+        why = "token 全花在思考上了，换个普通模型或把预算放大" if thought else "模型没给正文"
+        raise JevError(f"判断模型返回了空内容（{why}；finish_reason={finish}）")
     return content
 
 
@@ -364,7 +368,7 @@ def _ask_custom(state: dict, questions: dict, key: str, base_url: str | None,
                                                    ensure_ascii=False)},
         ],
         "temperature": 0,
-        "max_tokens": 1200,
+        "max_tokens": 2000,   # 思考型模型会先写一长段 reasoning，预算小了正文就空
         "stream": False,
     }
     body = _post_json(url, key, payload, timeout)
