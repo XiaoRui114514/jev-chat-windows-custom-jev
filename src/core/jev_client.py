@@ -10,6 +10,7 @@ SDK 把路径写死成 `/v1/systemone`，打不到 OpenRouter 的 `/api/alpha/de
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import socket
@@ -236,15 +237,14 @@ _CUSTOM_SYSTEM = (
 def _number(value) -> float | None:
     """模型爱把数字写成字符串；认不出来就给 None，别猜。"""
     if isinstance(value, bool):
-        return float(value)
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        try:
-            return float(value.strip())
-        except ValueError:
-            return None
-    return None
+        return None
+    if not isinstance(value, (int, float, str)):
+        return None
+    try:
+        number = float(value)
+    except (ValueError, OverflowError):
+        return None
+    return number if math.isfinite(number) else None
 
 
 def _unit(value) -> float:

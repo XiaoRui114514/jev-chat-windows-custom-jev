@@ -87,6 +87,8 @@ python -m unittest discover -s tests -v
 
 安装/还原回归测试需要 PowerShell（自动查找 `pwsh` / `powershell`，也可通过 `PWSH` 指定），
 使用临时目录与合成字节，不修改真实程序或用户目录。
+Python 3.11 还会校验发布载荷中的判断客户端与源码一致，并实际执行载荷中的异常数值回归；
+其他 Python 版本会跳过字节码测试。
 
 `build_patch.py` 要用 Python 3.11（exe 里的字节码是 3.11 的）。它把 exe 里的 PYZ 解出来、
 塞进新字节码、重排 CArchive，最后自己校验一遍；加 `--patched-exe` 会顺便把打好的 exe 写出来先跑一下。
