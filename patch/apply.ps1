@@ -43,12 +43,17 @@ function Resolve-Exe($candidate) {
 function Find-Candidates {
     $found = New-Object System.Collections.Generic.List[string]
     foreach ($p in $Path) { $r = Resolve-Exe $p; if ($r) { $found.Add($r) } }
+    # An explicit target must not fall through to an unrelated installation.
+    if ($Path.Count -gt 0) {
+        $found | Select-Object -Unique
+        return
+    }
     # bat 就放在 app 目录里
     $here_exe = Join-Path (Split-Path -Parent $here) 'jev-chat-windows.exe'
     if (Test-Path -LiteralPath $here_exe) { $found.Add((Get-Item -LiteralPath $here_exe).FullName) }
     # 桌面上的快捷方式（JevChat 微信助手.lnk 之类）
     $desktop = [Environment]::GetFolderPath('Desktop')
-    if (Test-Path -LiteralPath $desktop) {
+    if ($desktop -and (Test-Path -LiteralPath $desktop)) {
         try {
             $shell = New-Object -ComObject WScript.Shell
             foreach ($lnk in Get-ChildItem -LiteralPath $desktop -Filter '*.lnk' -ErrorAction SilentlyContinue) {
@@ -65,7 +70,7 @@ function Find-Candidates {
                (Join-Path $env:USERPROFILE 'Documents'),
                (Join-Path $env:USERPROFILE 'Documents\Codex'))
     foreach ($root in $roots) {
-        if (-not (Test-Path -LiteralPath $root)) { continue }
+        if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
         Get-ChildItem -LiteralPath $root -Recurse -Depth 4 -Filter 'jev-chat-windows.exe' -File -ErrorAction SilentlyContinue |
             ForEach-Object { $found.Add($_.FullName) }
     }
@@ -95,14 +100,22 @@ foreach ($candidate in Find-Candidates) {
     $hash = File-Hash $candidate
     $backup = "$candidate.bak"
     $backupOk = (Test-Path -LiteralPath $backup) -and ((File-Hash $backup) -eq $manifest.original.sha256)
-    if ($hash -eq $manifest.original.sha256) { $target = $candidate; break }
+    if ($Restore) {
+        if ($backupOk) { $target = $candidate; break }
+        Say "（跳过 $candidate：没有通过校验的原始 exe 备份）"
+        continue
+    }
+    if ($hash -eq $manifest.original.sha256 -or $hash -eq $manifest.patched.sha256) {
+        $target = $candidate
+        break
+    }
     # 已经改过的：这一版补丁、或者别的版本补丁，只要备份还在就算「改过」
     if ($hash -eq $manifest.patched.sha256 -or $backupOk) { $stale += $candidate; continue }
     Say "（跳过 $candidate：不是 v$version 的官方 exe）"
 }
 if (-not $target) {
-    if ($Restore -and $stale.Count -gt 0) {
-        $target = $stale[0]                     # 还原只看备份对不对
+    if ($Restore) {
+        Fail '没找到通过校验的原始 exe 备份，未修改任何文件。请检查指定 exe 旁的 .bak 文件。'
     } elseif ($stale.Count -gt 0) {
         Fail "这个 exe 已经打过补丁或改动过：`n  $($stale[0])`n先双击 卸载补丁.bat 还原成官方版，再来打补丁。"
     } else {
@@ -116,6 +129,9 @@ Say "目标：$target"
 # ---- 还原 ----
 if ($Restore) {
     if (-not (Test-Path -LiteralPath $backup)) { Fail "没找到备份 $backup，没法还原。" }
+    if ((File-Hash $backup) -ne $manifest.original.sha256) {
+        Fail '备份文件校验不对，未修改原来的 exe。'
+    }
     Stop-App $target
     Copy-Item -LiteralPath $backup -Destination $target -Force
     $back = (File-Hash $target)
@@ -126,6 +142,9 @@ if ($Restore) {
 
 # ---- 打补丁 ----
 if ((File-Hash $target) -eq $manifest.patched.sha256) { Say '这个 exe 已经打过补丁了，不用再来一次。'; exit 0 }
+if ((Test-Path -LiteralPath $backup) -and ((File-Hash $backup) -ne $manifest.original.sha256)) {
+    Fail "现有备份 $backup 校验不对，未修改原来的 exe。请先保留并检查这份备份。"
+}
 Stop-App $target
 
 $payloads = @{}

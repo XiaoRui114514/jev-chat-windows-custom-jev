@@ -82,7 +82,11 @@ TeamoRouter 也提供 Jev，但走的是 TypeSafe 协议（`/v1/systemone`），
 ```
 python tools/build_patch.py --exe "路径\jev-chat-windows.exe" --patched-exe out.exe
 python tools/test_patch.py src
+python -m unittest discover -s tests -v
 ```
+
+安装/还原回归测试需要 PowerShell（自动查找 `pwsh` / `powershell`，也可通过 `PWSH` 指定），
+使用临时目录与合成字节，不修改真实程序或用户目录。
 
 `build_patch.py` 要用 Python 3.11（exe 里的字节码是 3.11 的）。它把 exe 里的 PYZ 解出来、
 塞进新字节码、重排 CArchive，最后自己校验一遍；加 `--patched-exe` 会顺便把打好的 exe 写出来先跑一下。
