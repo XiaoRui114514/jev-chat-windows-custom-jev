@@ -1,0 +1,20 @@
+name: patch-regression
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        ps: [pwsh, powershell]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install typesafe-sdk openai httpx
+      - run: python -m unittest discover -s tests -v
+        env:
+          PWSH: '${{ matrix.ps }}'
+      - run: python tools/test_patch.py src

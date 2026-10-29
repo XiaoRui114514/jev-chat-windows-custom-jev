@@ -227,6 +227,8 @@ def build(exe_path: str, patched_exe: str | None):
                 "append_file": "pyz-append.bin", "toc_file": "pyz-toc.bin"},
         "carchive": {"toc_file": "carchive-toc.bin", "cookie_file": "carchive-cookie.bin"},
         "modules": sorted(MODULES),
+        "source_sha256": {name: sha256(open(os.path.join(SRC, name), "rb").read()) for name in sorted([*MODULES.values(), MAIN_SOURCE])},
+        "payload_sha256": {name: sha256(blob) for name, blob in sorted(payload.items())},
     }
     return payload, manifest, patched
 

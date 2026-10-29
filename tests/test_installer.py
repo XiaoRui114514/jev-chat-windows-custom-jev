@@ -56,6 +56,16 @@ class InstallerTests(unittest.TestCase):
         self.profile = self.root / "profile"
         (self.profile / "Downloads").mkdir(parents=True)
 
+    def test_check_never_modifies_original_patched_or_unsupported_file(self):
+        for content in (self.original,self.patched,b'unknown executable'):
+            self.exe.write_bytes(content)
+            self.backup.write_bytes(self.original)
+            result=subprocess.run([SHELL,'-NoProfile','-NonInteractive','-File',str(self.patch/'apply.ps1'),'-Check',str(self.exe)],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertIn('restorable',result.stdout)
+            self.assertEqual(self.exe.read_bytes(),content)
+            self.assertEqual(self.backup.read_bytes(),self.original)
+
     def run_installer(self, restore=False, target=True):
         args = [SHELL, "-NoProfile", "-NonInteractive", "-File", str(self.patch / "apply.ps1")]
         if restore:

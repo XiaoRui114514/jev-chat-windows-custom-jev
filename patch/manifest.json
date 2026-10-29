@@ -38,5 +38,21 @@
     "core.engine",
     "core.jev_client",
     "core.providers"
-  ]
+  ],
+  "source_sha256": {
+    "app/overlay.py": "64fbb8ae359d379be4248f762b1c359735897dda203525c1d3a0719121eb6264",
+    "app/settings.py": "8c355b1ddae6fec24026f04c038e2d5ce1b55c0b497a56fd7757793c9def149a",
+    "core/engine.py": "a076a5aa493ff1200de70566514da0364edd24e15f60407a74b70ae465e6df65",
+    "core/jev_client.py": "c0a784cadeb37fef5d2c438aa907e9edaddf3dc1094de134c1c6f92a769cc0cf",
+    "core/providers.py": "a1cec53f7c1163c2fc440403c7a05491806044184290dc37f1a086acd2ff369a",
+    "main.py": "d04554af0d47b53cc69e27a0eb0850692e38262d290f622577dfcb1a74fd710d"
+  },
+  "payload_sha256": {
+    "carchive-cookie.bin": "8f799e24bd71539d5a2d81af0d3e6a4c7dfa914c2a047ea89824c2964662e488",
+    "carchive-toc.bin": "68ca14abc2a2baa3ecc0558287aa742f75c7b88a2018160fe11348108c7f16b6",
+    "main.bin": "f6946e76a47c2dd6b989c0a80f96b351bb1b213cf6a0187356f585431b2cba69",
+    "pyz-append.bin": "fc32985e715518f86cade32c409d1a88a3f1cec02ccf6aa8f1259eb55f09e105",
+    "pyz-header.bin": "becdfe6747669b12454c435fe01b1df56ed9c31e11490e257b28eef18253bd5f",
+    "pyz-toc.bin": "6654abbd57d31624b1a7fea674f290c6ce158b4a18eec3594420734448b98161"
+  }
 }

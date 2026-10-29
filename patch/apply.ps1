@@ -2,7 +2,8 @@
 # 只做三件事：找到 exe、核对 sha256、把 patch/ 里那几段字节拼回去。全程离线，不装任何东西。
 param(
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Path,
-    [switch]$Restore
+    [switch]$Restore,
+    [switch]$Check
 )
 
 $ErrorActionPreference = 'Stop'
@@ -94,6 +95,19 @@ Say "JevChat-Windows 判断模型自定义来源补丁  (对应 v$version)"
 Say ''
 
 # ---- 找 exe：只认 sha256 对得上的那个 ----
+if ($Check) {
+    $reports = @()
+    foreach ($candidate in Find-Candidates) {
+        $hash = File-Hash $candidate
+        $backup = "$candidate.bak"
+        $state = if ($hash -eq $manifest.original.sha256) { 'original' } elseif ($hash -eq $manifest.patched.sha256) { 'patched' } else { 'unsupported' }
+        $reports += [pscustomobject]@{ path=$candidate; version=$version; state=$state; sha256=$hash; restorable=((Test-Path -LiteralPath $backup) -and ((File-Hash $backup) -eq $manifest.original.sha256)) }
+    }
+    ConvertTo-Json -InputObject @($reports) -Depth 4
+    if ($reports.Count -eq 0) { exit 2 }
+    exit 0
+}
+
 $target = $null
 $stale = @()
 foreach ($candidate in Find-Candidates) {
@@ -145,13 +159,17 @@ if ((File-Hash $target) -eq $manifest.patched.sha256) { Say '这个 exe 已经�
 if ((Test-Path -LiteralPath $backup) -and ((File-Hash $backup) -ne $manifest.original.sha256)) {
     Fail "现有备份 $backup 校验不对，未修改原来的 exe。请先保留并检查这份备份。"
 }
-Stop-App $target
-
 $payloads = @{}
 foreach ($name in @($manifest.main_entry.file, $manifest.pyz.header_file, $manifest.pyz.append_file,
                     $manifest.pyz.toc_file, $manifest.carchive.toc_file, $manifest.carchive.cookie_file)) {
     $payloads[$name] = [IO.File]::ReadAllBytes((Join-Path $here $name))
 }
+if ($manifest.payload_sha256) {
+    foreach ($prop in $manifest.payload_sha256.PSObject.Properties) {
+        if (-not $payloads.ContainsKey($prop.Name) -or (Bytes-Hash $payloads[$prop.Name]) -ne $prop.Value) { Fail "补丁载荷校验失败：$($prop.Name)，未修改程序。" }
+    }
+}
+Stop-App $target
 $original = [IO.File]::ReadAllBytes($target)
 $archiveStart = [int]$manifest.archive_start
 $mainOffset = $archiveStart + [int]$manifest.main_entry.offset

@@ -101,3 +101,9 @@ Python 3.11 还会校验发布载荷中的判断客户端与源码一致，并�
 上游 [jev-chat-windows](https://github.com/jev-chat/jev-chat-windows) 是 MIT，
 判断内核和题目口径的版权归 Finderchangchang 与 jev-chat 贡献者，详见 [NOTICE](NOTICE)。
 本仓库是基于它二次开发的补丁。
+
+## 只检查安装状态
+
+双击 `检查补丁.bat`，也可把 EXE 拖入；或运行 `powershell -File patch/apply.ps1 -Check <exe>`。
+只报告目标路径、版本、原版/已安装/不支持状态和备份是否可还原，不关闭程序、不写 EXE。
+`manifest.json` 另记录每份源码和每段载荷的 SHA256，安装前核对载荷；源码版继续承接新产品功能，旧补丁保持 v0.1.11 兼容维护。
