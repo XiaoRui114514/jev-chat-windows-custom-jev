@@ -60,7 +60,7 @@ class InstallerTests(unittest.TestCase):
         for content in (self.original,self.patched,b'unknown executable'):
             self.exe.write_bytes(content)
             self.backup.write_bytes(self.original)
-            result=subprocess.run([SHELL,'-NoProfile','-NonInteractive','-File',str(self.patch/'apply.ps1'),'-Check',str(self.exe)],capture_output=True,text=True)
+            result=subprocess.run([SHELL,'-NoProfile','-NonInteractive','-File',str(self.patch/'apply.ps1'),'-Check',str(self.exe)],capture_output=True,text=True,encoding='utf-8')
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertIn('restorable',result.stdout)
             self.assertEqual(self.exe.read_bytes(),content)
