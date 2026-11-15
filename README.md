@@ -1,8 +1,11 @@
 # JevChat-Windows：判断模型自定义来源补丁
 
+[English](README.en.md) · 简体中文
 给 [JevChat-Windows](https://github.com/jev-chat/jev-chat-windows) v0.1.11 的 exe 补一个来源选项：
 「判断 · Jev」除了 OpenRouter 和 TypeSafe 直连，还能选**自定义 · OpenAI 兼容**，
 跟起草模型那边的自定义一样，自己填 Base URL 和密钥，用「获取模型」拉列表。
+
+> 需要源码开发或新安装应用时，可使用已整合自定义来源的 [JevChat-Windows Custom](https://github.com/XiaoRui114514/jev-chat-windows-custom)。本仓库保留官方 v0.1.11 的专用补丁流程，不适用于任意版本的 exe。
 
 ## 用法
 
